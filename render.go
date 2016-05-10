@@ -2,7 +2,6 @@ package httpc
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"mime"
 	"net/http"
@@ -95,14 +94,11 @@ func (ctx *Context) RenderJSON(view Viewable, code int) error {
 func (ctx *Context) RenderPlain(view Viewable, code int) error {
 	s, ok := view.(string)
 	if !ok {
-		return errors.New("httpc: view for RenderPlain must be a string")
+		return fmt.Errorf("httpc: view for RenderPlain must be a string")
 	}
 	ctx.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	ctx.Header().Set("X-Content-Type-Options", "nosniff")
 	ctx.WriteHeader(code)
-	if view == nil {
-		return nil
-	}
 	_, err := fmt.Fprintln(ctx, s)
 	return err
 }
