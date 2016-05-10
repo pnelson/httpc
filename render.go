@@ -68,9 +68,6 @@ func (ctx *Context) RenderHTML(view tmpl.Viewable, code int) error {
 	}
 	ctx.Header().Set("Content-Type", "text/html; charset=utf-8")
 	ctx.WriteHeader(code)
-	if view == nil {
-		return nil
-	}
 	_, err = ctx.Write(b)
 	return err
 }
