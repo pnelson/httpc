@@ -41,8 +41,7 @@ func (ctx *Context) Render(view Viewable, code int) error {
 			return ctx.RenderPlain(view, code)
 		}
 	}
-	text := http.StatusText(http.StatusNotAcceptable)
-	return ctx.RenderPlain([]byte(text), http.StatusNotAcceptable)
+	return ctx.Abort(http.StatusNotAcceptable)
 }
 
 // Renderer represents the ability to render a tmpl.Viewable.

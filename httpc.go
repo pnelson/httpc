@@ -32,8 +32,8 @@ func NewContext(ctx context.Context, w http.ResponseWriter, req *http.Request) *
 }
 
 // Abort replies to the request with a default plain text error.
-func (ctx *Context) Abort(code int) {
-	ctx.RenderPlain(StatusText(code), code)
+func (ctx *Context) Abort(code int) error {
+	return ctx.RenderPlain(StatusText(code), code)
 }
 
 // NoContent writes http.StatusNoContent to the header.
