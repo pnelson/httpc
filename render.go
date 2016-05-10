@@ -106,12 +106,3 @@ func (ctx *Context) RenderPlain(view Viewable, code int) error {
 	_, err := fmt.Fprintln(ctx, s)
 	return err
 }
-
-// MustRender writes the view to the response or falls back to
-// the default HTTP 500 Internal Server Error.
-func (ctx *Context) MustRender(view Viewable, code int) {
-	err := ctx.Render(view, code)
-	if err != nil {
-		ctx.Abort(http.StatusInternalServerError)
-	}
-}
