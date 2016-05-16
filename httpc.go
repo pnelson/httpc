@@ -18,6 +18,12 @@ type Context struct {
 	Request *http.Request
 }
 
+// key represents httpc context.Context keys.
+type key int
+
+// Package context.Context keys.
+const keyError key = iota
+
 // mu protects variables that Context uses but are not
 // expected to change beyond application initialization.
 var mu sync.Mutex
@@ -79,4 +85,18 @@ func (ctx *Context) SetCookie(cookie *http.Cookie) {
 		cookie.Expires = time.Unix(1, 0)
 	}
 	http.SetCookie(ctx, cookie)
+}
+
+// Error returns the error response if any.
+func (ctx *Context) Error() error {
+	err, ok := ctx.Value(keyError).(error)
+	if !ok {
+		return nil
+	}
+	return err
+}
+
+// SetError sets the error on the context.
+func (ctx *Context) SetError(err error) {
+	ctx.Context = context.WithValue(ctx, keyError, err)
 }
