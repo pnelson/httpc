@@ -3,8 +3,8 @@ package httpc
 
 import (
 	"fmt"
+	"net"
 	"net/http"
-	"strings"
 	"sync"
 	"time"
 
@@ -67,9 +67,11 @@ func (ctx *Context) RemoteAddr() string {
 		addr = ctx.Request.Header.Get("X-Forwarded-For")
 		if addr == "" {
 			addr = ctx.Request.RemoteAddr
-			if i := strings.LastIndex(addr, ":"); i > -1 {
-				addr = addr[:i]
+			host, _, err := net.SplitHostPort(addr)
+			if err != nil {
+				return addr
 			}
+			return host
 		}
 	}
 	return addr
