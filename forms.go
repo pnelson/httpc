@@ -3,6 +3,7 @@ package httpc
 import (
 	"encoding/json"
 	"mime"
+	"net/http"
 
 	"github.com/gorilla/schema"
 )
@@ -15,19 +16,25 @@ type Form interface {
 
 // Validate decodes, sanitizes and validates the request body
 // and stores the result in to the value pointed to by form.
-func (ctx *Context) Validate(form Form) error {
-	v := ctx.Request.Header.Get("Content-Type")
+func Validate(req *http.Request, form Form) error {
+	v := req.Header.Get("Content-Type")
 	media, _, err := mime.ParseMediaType(v)
 	if err != nil {
 		return err
 	}
 	switch media {
 	case "application/json":
-		return ctx.ValidateJSON(form)
+		return ValidateJSON(req, form)
 	case "multipart/form-data":
-		return ctx.ValidateMultipart(form)
+		return ValidateMultipart(req, form)
 	}
-	return ctx.ValidateForm(form)
+	return ValidateForm(req, form)
+}
+
+// Validate decodes, sanitizes and validates the request body
+// and stores the result in to the value pointed to by form.
+func (ctx *Context) Validate(form Form) error {
+	return Validate(ctx.Request, form)
 }
 
 // decoder decodes a struct with form values.
@@ -37,12 +44,31 @@ var decoder = schema.NewDecoder()
 // ValidateForm decodes, sanitizes and validates the request
 // body as a form and stores the result in the value pointed
 // to by form.
-func (ctx *Context) ValidateForm(form Form) error {
-	err := ctx.Request.ParseForm()
+func ValidateForm(req *http.Request, form Form) error {
+	err := req.ParseForm()
 	if err != nil {
 		return err
 	}
-	err = decoder.Decode(form, ctx.Request.PostForm)
+	err = decoder.Decode(form, req.PostForm)
+	if err != nil {
+		return err
+	}
+	return form.Validate()
+}
+
+// ValidateForm decodes, sanitizes and validates the request
+// body as a form and stores the result in the value pointed
+// to by form.
+func (ctx *Context) ValidateForm(form Form) error {
+	return ValidateForm(ctx.Request, form)
+}
+
+// ValidateJSON decodes, sanitizes and validates the request
+// body as JSON and stores the result in the value pointed
+// to by form.
+func ValidateJSON(req *http.Request, form Form) error {
+	defer req.Body.Close()
+	err := json.NewDecoder(req.Body).Decode(form)
 	if err != nil {
 		return err
 	}
@@ -53,12 +79,7 @@ func (ctx *Context) ValidateForm(form Form) error {
 // body as JSON and stores the result in the value pointed
 // to by form.
 func (ctx *Context) ValidateJSON(form Form) error {
-	defer ctx.Request.Body.Close()
-	err := json.NewDecoder(ctx.Request.Body).Decode(form)
-	if err != nil {
-		return err
-	}
-	return form.Validate()
+	return ValidateJSON(ctx.Request, form)
 }
 
 // DefaultMaxUploadSize is the default maximum file upload size in bytes.
@@ -77,14 +98,21 @@ func SetMaxUploadSize(size int64) {
 // ValidateMultipart decodes, sanitizes and validates the request
 // body as multipart/form-data and stores the result in the value
 // pointed to by form.
-func (ctx *Context) ValidateMultipart(form Form) error {
-	err := ctx.Request.ParseMultipartForm(maxUploadSize)
+func ValidateMultipart(req *http.Request, form Form) error {
+	err := req.ParseMultipartForm(maxUploadSize)
 	if err != nil {
 		return err
 	}
-	err = decoder.Decode(form, ctx.Request.MultipartForm.Value)
+	err = decoder.Decode(form, req.MultipartForm.Value)
 	if err != nil {
 		return err
 	}
 	return form.Validate()
+}
+
+// ValidateMultipart decodes, sanitizes and validates the request
+// body as multipart/form-data and stores the result in the value
+// pointed to by form.
+func (ctx *Context) ValidateMultipart(form Form) error {
+	return ValidateMultipart(ctx.Request, form)
 }

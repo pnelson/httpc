@@ -77,7 +77,7 @@ func (m *Mux) handle(p *pat.Pattern, h Handler) {
 		c := NewContext(ctx, w, req)
 		err := h(c)
 		if err != nil {
-			c.SetError(err)
+			c.setError(err)
 			m.errorHandler(c)
 		}
 	}
