@@ -9,13 +9,35 @@ import (
 )
 
 type testForm struct {
-	Foo string `json:"foo"`
-	Bar int    `json:"bar"`
+	Foo int       `json:"foo"`
+	Bar testField `json:"bar"`
+	*testEmbedded
 }
 
 func (f testForm) Validate() error {
-	if f.Bar < 1 {
-		return errors.New("f.Bar < 1")
+	if f.Foo < 1 {
+		return errors.New("f.Foo < 1")
+	}
+	return nil
+}
+
+type testField int
+
+func (f testField) Validate() error {
+	if f < 1 {
+		return errors.New("testField < 1")
+	}
+	return nil
+}
+
+type testEmbedded struct {
+	Baz int       `json:"baz"`
+	Qux *testForm `json:"qux,omitempty"`
+}
+
+func (f testEmbedded) Validate() error {
+	if f.Baz < 1 {
+		return errors.New("f.Baz < 1")
 	}
 	return nil
 }
@@ -25,8 +47,14 @@ func TestValidateJSON(t *testing.T) {
 		body    string
 		isValid bool
 	}{
-		"valid":   {`{"foo":"bar","bar":1}`, true},
-		"invalid": {`{"foo":"bar","bar":0}`, false},
+		"valid":                   {`{"foo":1,"bar":1,"baz":1}`, true},
+		"invalid":                 {`{"foo":0,"bar":1,"baz":1}`, false},
+		"field invalid":           {`{"foo":1,"bar":0,"baz":1}`, false},
+		"embedded invalid":        {`{"foo":1,"bar":1,"baz":0}`, false},
+		"nested valid":            {`{"foo":1,"bar":1,"baz":1,"qux":{"foo":1,"bar":1,"baz":1}}`, true},
+		"nested invalid":          {`{"foo":1,"bar":1,"baz":1,"qux":{"foo":0,"bar":1,"baz":1}}`, false},
+		"nested field invalid":    {`{"foo":1,"bar":1,"baz":1,"qux":{"foo":1,"bar":0,"baz":1}}`, false},
+		"nested embedded invalid": {`{"foo":1,"bar":1,"baz":1,"qux":{"foo":1,"bar":1,"baz":0}}`, false},
 	}
 	for name, tt := range tests {
 		var form testForm
