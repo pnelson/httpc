@@ -1,32 +1,35 @@
 package httpc
 
 import (
+	"context"
 	"net/http"
 
 	"goji.io"
 	"goji.io/pat"
 	"goji.io/pattern"
-	"golang.org/x/net/context"
 )
 
 // Mux represents an HTTP request multiplexer.
 type Mux struct {
 	*goji.Mux
-	errorHandler Handler
+	errorHandler http.Handler
 }
 
-// Handler represents a HTTP handler.
-type Handler func(*Context) error
+// Handler represents a HTTP handler with error handling.
+type Handler func(w http.ResponseWriter, req *http.Request) error
 
 // NewMux returns a new mux.
 func NewMux() *Mux {
-	return &Mux{Mux: goji.NewMux(), errorHandler: defaultErrorHandler}
+	return &Mux{
+		Mux:          goji.NewMux(),
+		errorHandler: http.HandlerFunc(defaultErrorHandler),
+	}
 }
 
 // NewSubMux returns a new mux mounted at the given pattern p.
 func (m *Mux) NewSubMux(p string) *Mux {
 	h := &Mux{Mux: goji.SubMux()}
-	m.HandleC(pat.New(p), h)
+	m.Handle(p, h)
 	return h
 }
 
@@ -73,15 +76,16 @@ func (m *Mux) Put(p string, h Handler) {
 
 // handle registers a route with the mux.
 func (m *Mux) handle(p *pat.Pattern, h Handler) {
-	fn := func(ctx context.Context, w http.ResponseWriter, req *http.Request) {
-		c := NewContext(ctx, w, req)
-		err := h(c)
+	fn := func(w http.ResponseWriter, req *http.Request) {
+		err := h(w, req)
 		if err != nil {
-			c.setError(err)
-			m.errorHandler(c)
+			ctx := req.Context()
+			ctx = context.WithValue(ctx, keyError, err)
+			req = req.WithContext(ctx)
+			m.errorHandler.ServeHTTP(w, req)
 		}
 	}
-	m.HandleFuncC(p, fn)
+	m.HandleFunc(p, fn)
 }
 
 // Handle registers a standard net/http route with the mux.
@@ -98,28 +102,32 @@ func (m *Mux) FileServer(p string, fs http.FileSystem) {
 	m.Handle(p, http.StripPrefix(prefix, http.FileServer(fs)))
 }
 
-// SetErrorHandler sets the Handler to delegate to when errors are returned.
-func (m *Mux) SetErrorHandler(h Handler) {
+// SetErrorHandler sets the http.Handler to delegate
+// to when errors are returned.
+func (m *Mux) SetErrorHandler(h http.Handler) {
 	m.errorHandler = h
 }
 
-// ServeHTTP implements the http.Handler interface.
-func (m *Mux) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	ctx := context.Background()
-	m.ServeHTTPC(ctx, w, req)
+// Error returns the error response if any.
+func Error(req *http.Request) error {
+	err, ok := req.Context().Value(keyError).(error)
+	if !ok {
+		return nil
+	}
+	return err
 }
 
 // Path returns the escaped request path.
-func (ctx *Context) Path() string {
-	return pattern.Path(ctx)
+func Path(req *http.Request) string {
+	return pattern.Path(req.Context())
 }
 
 // Param returns the bound parameter with the given name.
-func (ctx *Context) Param(name string) string {
-	return pat.Param(ctx, name)
+func Param(req *http.Request, name string) string {
+	return pat.Param(req, name)
 }
 
 // defaultErrorHandler is the default error handler.
-func defaultErrorHandler(ctx *Context) error {
-	return ctx.Abort(http.StatusInternalServerError)
+func defaultErrorHandler(w http.ResponseWriter, req *http.Request) {
+	Abort(w, http.StatusInternalServerError)
 }

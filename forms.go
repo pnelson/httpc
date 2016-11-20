@@ -31,12 +31,6 @@ func Validate(req *http.Request, form Form) error {
 	return ValidateForm(req, form)
 }
 
-// Validate decodes, sanitizes and validates the request body
-// and stores the result in to the value pointed to by form.
-func (ctx *Context) Validate(form Form) error {
-	return Validate(ctx.Request, form)
-}
-
 // decoder decodes a struct with form values.
 // The decoder caches struct meta data and can be shared safely.
 var decoder = schema.NewDecoder()
@@ -56,13 +50,6 @@ func ValidateForm(req *http.Request, form Form) error {
 	return form.Validate()
 }
 
-// ValidateForm decodes, sanitizes and validates the request
-// body as a form and stores the result in the value pointed
-// to by form.
-func (ctx *Context) ValidateForm(form Form) error {
-	return ValidateForm(ctx.Request, form)
-}
-
 // ValidateJSON decodes, sanitizes and validates the request
 // body as JSON and stores the result in the value pointed
 // to by form.
@@ -73,13 +60,6 @@ func ValidateJSON(req *http.Request, form Form) error {
 		return err
 	}
 	return form.Validate()
-}
-
-// ValidateJSON decodes, sanitizes and validates the request
-// body as JSON and stores the result in the value pointed
-// to by form.
-func (ctx *Context) ValidateJSON(form Form) error {
-	return ValidateJSON(ctx.Request, form)
 }
 
 // DefaultMaxUploadSize is the default maximum file upload size in bytes.
@@ -108,11 +88,4 @@ func ValidateMultipart(req *http.Request, form Form) error {
 		return err
 	}
 	return form.Validate()
-}
-
-// ValidateMultipart decodes, sanitizes and validates the request
-// body as multipart/form-data and stores the result in the value
-// pointed to by form.
-func (ctx *Context) ValidateMultipart(form Form) error {
-	return ValidateMultipart(ctx.Request, form)
 }

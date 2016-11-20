@@ -43,11 +43,6 @@ func Render(w http.ResponseWriter, req *http.Request, view Viewable, code int) e
 	return Abort(w, http.StatusNotAcceptable)
 }
 
-// Render writes the view in the requested format, if available.
-func (ctx *Context) Render(view Viewable, code int) error {
-	return Render(ctx, ctx.Request, view, code)
-}
-
 // Renderer represents the ability to render a tmpl.Viewable.
 type Renderer interface {
 	Render(view tmpl.Viewable) ([]byte, error)
@@ -77,11 +72,6 @@ func RenderHTML(w http.ResponseWriter, view tmpl.Viewable, code int) error {
 	return err
 }
 
-// RenderHTML writes the view as templated HTML.
-func (ctx *Context) RenderHTML(view tmpl.Viewable, code int) error {
-	return RenderHTML(ctx, view, code)
-}
-
 // RenderJSON writes the view as marshalled JSON.
 func RenderJSON(w http.ResponseWriter, view Viewable, code int) error {
 	b, err := json.Marshal(view)
@@ -97,11 +87,6 @@ func RenderJSON(w http.ResponseWriter, view Viewable, code int) error {
 	return err
 }
 
-// RenderJSON writes the view as marshalled JSON.
-func (ctx *Context) RenderJSON(view Viewable, code int) error {
-	return RenderJSON(ctx, view, code)
-}
-
 // RenderPlain writes the view as a string.
 func RenderPlain(w http.ResponseWriter, view Viewable, code int) error {
 	s, ok := view.(string)
@@ -113,9 +98,4 @@ func RenderPlain(w http.ResponseWriter, view Viewable, code int) error {
 	w.WriteHeader(code)
 	_, err := fmt.Fprintln(w, s)
 	return err
-}
-
-// RenderPlain writes the view as a string.
-func (ctx *Context) RenderPlain(view Viewable, code int) error {
-	return RenderPlain(ctx, view, code)
 }
