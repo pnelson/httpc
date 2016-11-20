@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"goji.io"
+	"goji.io/middleware"
 	"goji.io/pat"
 	"goji.io/pattern"
 )
@@ -115,6 +116,12 @@ func Error(req *http.Request) error {
 		return nil
 	}
 	return err
+}
+
+// MatchedHandler returns the handler corresponding to the most
+// recently matched pattern, or nil if no pattern was matched.
+func MatchedHandler(req *http.Request) http.Handler {
+	return middleware.Handler(req.Context())
 }
 
 // Path returns the escaped request path.
