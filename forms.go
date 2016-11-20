@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"mime"
 	"net/http"
-	"reflect"
 
 	"github.com/gorilla/schema"
 )
@@ -38,61 +37,6 @@ func (ctx *Context) Validate(form Form) error {
 	return Validate(ctx.Request, form)
 }
 
-// validate validates nested fields if the form is a struct
-// and then validates itself.
-func validate(form Form) error {
-	v := reflect.ValueOf(form)
-	t := v.Type()
-	err := validateFields(v, t)
-	if err != nil {
-		return err
-	}
-	return form.Validate()
-}
-
-// validateFields validates the fields of struct if applicable.
-// Embedded fields are validated as if they are at the same level.
-// Since we need the type assertion back to Form, the embedded field
-// must be a pointer or exported.
-func validateFields(v reflect.Value, t reflect.Type) error {
-	if v.Kind() == reflect.Ptr {
-		v = v.Elem()
-	}
-	if v.Kind() == reflect.Struct {
-		t = v.Type()
-		for i := 0; i < t.NumField(); i++ {
-			fieldVal := v.Field(i)
-			fieldType := t.Field(i)
-			if fieldType.Anonymous {
-				err := validateFields(fieldVal, fieldType.Type)
-				if err != nil {
-					return err
-				}
-			}
-			err := validateField(fieldVal)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
-// validateField validates a struct field.
-func validateField(v reflect.Value) error {
-	if v.Kind() == reflect.Ptr && v.IsNil() {
-		return nil
-	}
-	if !v.CanInterface() {
-		return nil
-	}
-	form, ok := v.Interface().(Form)
-	if !ok {
-		return nil
-	}
-	return validate(form)
-}
-
 // decoder decodes a struct with form values.
 // The decoder caches struct meta data and can be shared safely.
 var decoder = schema.NewDecoder()
@@ -109,7 +53,7 @@ func ValidateForm(req *http.Request, form Form) error {
 	if err != nil {
 		return err
 	}
-	return validate(form)
+	return form.Validate()
 }
 
 // ValidateForm decodes, sanitizes and validates the request
@@ -128,7 +72,7 @@ func ValidateJSON(req *http.Request, form Form) error {
 	if err != nil {
 		return err
 	}
-	return validate(form)
+	return form.Validate()
 }
 
 // ValidateJSON decodes, sanitizes and validates the request
@@ -163,7 +107,7 @@ func ValidateMultipart(req *http.Request, form Form) error {
 	if err != nil {
 		return err
 	}
-	return validate(form)
+	return form.Validate()
 }
 
 // ValidateMultipart decodes, sanitizes and validates the request
