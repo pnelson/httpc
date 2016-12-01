@@ -66,7 +66,7 @@ func RemoteAddr(req *http.Request) string {
 func SetCookie(w http.ResponseWriter, cookie *http.Cookie) {
 	if cookie.MaxAge > 0 {
 		cookie.Expires = time.Now().Add(time.Duration(cookie.MaxAge) * time.Second)
-	} else {
+	} else if cookie.MaxAge < 0 {
 		cookie.Expires = time.Unix(1, 0)
 	}
 	http.SetCookie(w, cookie)
