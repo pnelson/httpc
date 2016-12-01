@@ -134,6 +134,13 @@ func Param(req *http.Request, name string) string {
 	return pat.Param(req, name)
 }
 
+// Query returns the first query value associated with the given key.
+// If there are no values associated with the key, Query returns the
+// empty string.
+func Query(req *http.Request, name string) string {
+	return req.URL.Query().Get(name)
+}
+
 // defaultErrorHandler is the default error handler.
 func defaultErrorHandler(w http.ResponseWriter, req *http.Request) {
 	Abort(w, http.StatusInternalServerError)
