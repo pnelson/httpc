@@ -118,10 +118,9 @@ func Error(req *http.Request) error {
 	return err
 }
 
-// MatchedHandler returns the handler corresponding to the most
-// recently matched pattern, or nil if no pattern was matched.
-func MatchedHandler(req *http.Request) http.Handler {
-	return middleware.Handler(req.Context())
+// Param returns the bound parameter with the given name.
+func Param(req *http.Request, name string) string {
+	return pat.Param(req, name)
 }
 
 // Path returns the escaped request path.
@@ -129,9 +128,14 @@ func Path(req *http.Request) string {
 	return pattern.Path(req.Context())
 }
 
-// Param returns the bound parameter with the given name.
-func Param(req *http.Request, name string) string {
-	return pat.Param(req, name)
+// Pattern returns the pattern corresponding to the most
+// recently matched pattern, or nil if no pattern was matched.
+func Pattern(req *http.Request) *pat.Pattern {
+	p := middleware.Pattern(req.Context())
+	if p == nil {
+		return nil
+	}
+	return p.(*pat.Pattern)
 }
 
 // Query returns the first query value associated with the given key.
