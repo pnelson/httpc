@@ -2,12 +2,11 @@ package httpc
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"mime"
 	"net/http"
 	"strings"
-
-	"github.com/pnelson/tmpl"
 )
 
 // Viewable represents a view. To provide an expressive API, this
@@ -30,10 +29,7 @@ func Render(w http.ResponseWriter, req *http.Request, view Viewable, code int) e
 			if renderer == nil {
 				continue
 			}
-			v, ok := view.(tmpl.Viewable)
-			if ok {
-				return RenderHTML(w, v, code)
-			}
+			return RenderHTML(w, view, code)
 		case "application/json", "application/*", "*/*":
 			return RenderJSON(w, view, code)
 		case "text/plain":
@@ -43,9 +39,9 @@ func Render(w http.ResponseWriter, req *http.Request, view Viewable, code int) e
 	return Abort(w, http.StatusNotAcceptable)
 }
 
-// Renderer represents the ability to render a tmpl.Viewable.
+// Renderer represents the ability to render HTML templates.
 type Renderer interface {
-	Render(view tmpl.Viewable) ([]byte, error)
+	Render(view interface{}) ([]byte, error)
 }
 
 // renderer is used to render HTML templates.
@@ -55,13 +51,14 @@ var renderer Renderer
 // This function is not thread safe and is intended to be called
 // once during application initialization.
 func SetRenderer(r Renderer) {
-	mu.Lock()
 	renderer = r
-	mu.Unlock()
 }
 
 // RenderHTML writes the view as templated HTML.
-func RenderHTML(w http.ResponseWriter, view tmpl.Viewable, code int) error {
+func RenderHTML(w http.ResponseWriter, view Viewable, code int) error {
+	if renderer == nil {
+		return errors.New("httpc: renderer must be set")
+	}
 	b, err := renderer.Render(view)
 	if err != nil {
 		return err
