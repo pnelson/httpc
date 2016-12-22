@@ -14,6 +14,12 @@ type Form interface {
 	Validate() error
 }
 
+// UploadForm represents a form with a maximum file upload size.
+type UploadForm interface {
+	// MaxUploadSize returns the maximum file upload size in bytes.
+	MaxUploadSize() int64
+}
+
 // Validate decodes, sanitizes and validates the request body
 // and stores the result in to the value pointed to by form.
 func Validate(req *http.Request, form Form) error {
@@ -65,20 +71,15 @@ func ValidateJSON(req *http.Request, form Form) error {
 // DefaultMaxUploadSize is the default maximum file upload size in bytes.
 const DefaultMaxUploadSize int64 = 32 << 20 // 32 MB
 
-// maxUploadSize is the maximum file upload size in bytes.
-var maxUploadSize = DefaultMaxUploadSize
-
-// SetMaxUploadSize sets the maximum file upload size in bytes.
-func SetMaxUploadSize(size int64) {
-	mu.Lock()
-	maxUploadSize = size
-	mu.Unlock()
-}
-
 // ValidateMultipart decodes, sanitizes and validates the request
 // body as multipart/form-data and stores the result in the value
 // pointed to by form.
 func ValidateMultipart(req *http.Request, form Form) error {
+	maxUploadSize := DefaultMaxUploadSize
+	uf, ok := form.(UploadForm)
+	if ok {
+		maxUploadSize = uf.MaxUploadSize()
+	}
 	err := req.ParseMultipartForm(maxUploadSize)
 	if err != nil {
 		return err

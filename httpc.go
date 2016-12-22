@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"sync"
 	"time"
 )
 
@@ -14,10 +13,6 @@ type key int
 
 // Package context.Context keys.
 const keyError key = iota
-
-// mu protects variables that Context uses but are not
-// expected to change beyond application initialization.
-var mu sync.Mutex
 
 // Abort replies to the request with a default plain text error.
 func Abort(w http.ResponseWriter, code int) error {
