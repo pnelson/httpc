@@ -66,3 +66,10 @@ func SetCookie(w http.ResponseWriter, cookie *http.Cookie) {
 	}
 	http.SetCookie(w, cookie)
 }
+
+// ServeFile replies to the request with the contents of the named file.
+// This is the equivalent to http.ServeFile and is here for consistency.
+func ServeFile(w http.ResponseWriter, req *http.Request, name string) error {
+	http.ServeFile(w, req, name)
+	return nil
+}
