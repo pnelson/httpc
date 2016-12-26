@@ -2,7 +2,6 @@ package httpc
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"mime"
 	"net/http"
@@ -12,6 +11,11 @@ import (
 // Viewable represents a view. To provide an expressive API, this
 // type is an alias for interface{} that is named for documentation.
 type Viewable interface{}
+
+// Renderable represents the ability to render HTML templates.
+type Renderable interface {
+	Render(view interface{}) ([]byte, error)
+}
 
 // Render writes the view in the requested format, if available.
 func Render(w http.ResponseWriter, req *http.Request, view Viewable, code int) error {
@@ -26,10 +30,11 @@ func Render(w http.ResponseWriter, req *http.Request, view Viewable, code int) e
 		}
 		switch media {
 		case "text/html", "text/*":
-			if renderer == nil {
+			v, ok := view.(Renderable)
+			if !ok {
 				continue
 			}
-			return RenderHTML(w, view, code)
+			return RenderHTML(w, v, code)
 		case "application/json", "application/*", "*/*":
 			return RenderJSON(w, view, code)
 		case "text/plain":
@@ -39,27 +44,9 @@ func Render(w http.ResponseWriter, req *http.Request, view Viewable, code int) e
 	return Abort(w, http.StatusNotAcceptable)
 }
 
-// Renderer represents the ability to render HTML templates.
-type Renderer interface {
-	Render(view interface{}) ([]byte, error)
-}
-
-// renderer is used to render HTML templates.
-var renderer Renderer
-
-// SetRenderer sets the Renderer used to render HTML templates.
-// This function is not thread safe and is intended to be called
-// once during application initialization.
-func SetRenderer(r Renderer) {
-	renderer = r
-}
-
 // RenderHTML writes the view as templated HTML.
-func RenderHTML(w http.ResponseWriter, view Viewable, code int) error {
-	if renderer == nil {
-		return errors.New("httpc: renderer must be set")
-	}
-	b, err := renderer.Render(view)
+func RenderHTML(w http.ResponseWriter, view Renderable, code int) error {
+	b, err := view.Render(view)
 	if err != nil {
 		return err
 	}
